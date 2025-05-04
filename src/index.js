@@ -15,7 +15,7 @@ app.use(
   })
 );
 
-app.use("/api/esp", espRoutes);
+app.use("/api", espRoutes);
 
 const PORT = process.env.PORT;
 

@@ -50,54 +50,14 @@ export const fetchWeather = async (req, res) => {
 export const fetchNews = async (req, res) => {
   const category = req.query.category.trim() || ""; // default category
   const country = req.query.country || "in"; // default to India
-  const q = req.query.country || ""; // blank
+  // const q = req.query.country || ""; // blank
   console.log("Category:", category);
   try {
     console.log(
-      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&${
-        q != "" && `q=${q}`
-      }&country=${country}&category=${category}&language=en`
+      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&country=${country}&category=${category}&language=en`
     );
     const response = await axios.get(
-      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&${
-        q != "" ? `q=${q}` : ""
-      }&country=${country}&category=${category}&language=en`
-    );
-    const articles = response.data.results.map((article) => ({
-      title: article.title,
-      source: article.source_name,
-      url: article.link,
-      description:
-        article.description != null
-          ? article.description.substring(0, 200) + "..."
-          : "",
-    }));
-
-    res.status(200).json({
-      message: "Top news fetched successfully",
-      articles,
-    });
-  } catch (error) {
-    console.error("Error fetching news:", error.message);
-    res.status(500).json({ message: "Failed to fetch news" });
-  }
-};
-
-export const fetchMail = async (req, res) => {
-  const category = req.query.category.trim() || ""; // default category
-  const country = req.query.country || "in"; // default to India
-  const q = req.query.country || ""; // blank
-  console.log("Category:", category);
-  try {
-    console.log(
-      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&${
-        q != "" && `q=${q}`
-      }&country=${country}&category=${category}&language=en`
-    );
-    const response = await axios.get(
-      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&${
-        q != "" ? `q=${q}` : ""
-      }&country=${country}&category=${category}&language=en`
+      `https://newsdata.io/api/1/latest?apikey=${process.env.NEWS_API}&country=${country}&category=${category}&language=en`
     );
     const articles = response.data.results.map((article) => ({
       title: article.title,
