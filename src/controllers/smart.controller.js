@@ -14,6 +14,7 @@ export const smartHandler = async (req, res) => {
     if (
       query.includes("weather") ||
       doc.has("rain") ||
+      doc.has("raining") ||
       doc.has("temperature") ||
       doc.has("hot")
     ) {

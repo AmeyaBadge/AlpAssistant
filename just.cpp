@@ -110,40 +110,40 @@ void displayNews(String smartResponse)
 // Display Mails
 void displayMails(String response)
 {
-    int mailsStartIdx = response.indexOf("\"mails\":[") + 9;
-    int mailsEndIdx = response.indexOf("]", mailsStartIdx);
-    if (mailsStartIdx == -1 || mailsEndIdx == -1)
+    int messagesStart = response.indexOf("\"messages\":[") + 12;
+    int messagesEnd = response.indexOf("]", messagesStart);
+    if (messagesStart == -1 || messagesEnd == -1)
     {
-        Serial.println("No mails found.");
+        Serial.println("No mail data found.");
         return;
     }
 
-    String mailsSection = response.substring(mailsStartIdx, mailsEndIdx);
-    int mailStartIdx = 0;
+    String messagesSection = response.substring(messagesStart, messagesEnd);
+    int msgIdx = 0;
+    int count = 1;
 
-    while ((mailStartIdx = mailsSection.indexOf("{", mailStartIdx)) != -1)
+    while ((msgIdx = messagesSection.indexOf("{", msgIdx)) != -1)
     {
-        int fromStart = mailsSection.indexOf("\"from\":\"", mailStartIdx);
-        int fromEnd = mailsSection.indexOf("\"", fromStart + 8);
-        String from = mailsSection.substring(fromStart + 8, fromEnd);
+        int snippetStart = messagesSection.indexOf("\"snippet\":\"", msgIdx);
+        if (snippetStart == -1)
+            break;
+        snippetStart += 11;
+        int snippetEnd = messagesSection.indexOf("\"", snippetStart);
+        if (snippetEnd == -1)
+            break;
 
-        int subjectStart = mailsSection.indexOf("\"subject\":\"", fromEnd);
-        int subjectEnd = mailsSection.indexOf("\"", subjectStart + 11);
-        String subject = mailsSection.substring(subjectStart + 11, subjectEnd);
+        String snippet = messagesSection.substring(snippetStart, snippetEnd);
 
-        int snippetStart = mailsSection.indexOf("\"snippet\":\"", subjectEnd);
-        int snippetEnd = mailsSection.indexOf("\"", snippetStart + 11);
-        String snippet = mailsSection.substring(snippetStart + 11, snippetEnd);
-
-        Serial.println("📧 From   : " + from);
-        Serial.println("✉️ Subject: " + subject);
-        Serial.println("📝 Snippet: " + snippet);
+        Serial.print("📬 Mail ");
+        Serial.print(count++);
+        Serial.println(":");
+        Serial.println(snippet);
         Serial.println("----");
 
-        mailStartIdx = mailsSection.indexOf("}", snippetEnd);
-        if (mailStartIdx == -1)
+        msgIdx = messagesSection.indexOf("}", snippetEnd);
+        if (msgIdx == -1)
             break;
-        mailStartIdx++;
+        msgIdx++;
     }
 }
 
