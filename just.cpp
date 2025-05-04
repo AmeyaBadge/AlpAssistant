@@ -5,8 +5,8 @@
 const char *ssid = "Tissuepaper";
 const char *password = "Dontknow";
 
-const char *pcIP = "http://192.168.1.28";                    // Flask server IP
-const char *smartAPI = "http://192.168.1.28:2001/api/smart"; // Node Smart API
+const char *pcIP = "http://192.168.1.28";
+const char *smartAPI = "http://192.168.1.28:2001/api/smart";
 
 String urlencode(String str)
 {
@@ -35,6 +35,118 @@ String urlencode(String str)
     return encoded;
 }
 
+// Display Weather
+void displayWeather(String response)
+{
+    int cityStart = response.indexOf("\"city\":\"") + 8;
+    int cityEnd = response.indexOf("\"", cityStart);
+    String city = response.substring(cityStart, cityEnd);
+
+    int descStart = response.indexOf("\"description\":\"", cityEnd) + 15;
+    int descEnd = response.indexOf("\"", descStart);
+    String desc = response.substring(descStart, descEnd);
+
+    int tempStart = response.indexOf("\"temperature\":", descEnd) + 14;
+    int tempEnd = response.indexOf(",", tempStart);
+    String temp = response.substring(tempStart, tempEnd);
+
+    int humStart = response.indexOf("\"humidity\":", tempEnd) + 11;
+    int humEnd = response.indexOf(",", humStart);
+    String humidity = response.substring(humStart, humEnd);
+
+    int windStart = response.indexOf("\"windSpeed\":", humEnd) + 12;
+    int windEnd = response.indexOf("}", windStart);
+    String wind = response.substring(windStart, windEnd);
+
+    Serial.println("📍 Weather Report");
+    Serial.println("City       : " + city);
+    Serial.println("Condition  : " + desc);
+    Serial.println("Temperature: " + temp + "°C");
+    Serial.println("Humidity   : " + humidity + "%");
+    Serial.println("Wind Speed : " + wind + " m/s");
+    Serial.println("----");
+}
+
+// Display News
+void displayNews(String smartResponse)
+{
+    int articlesStartIdx = smartResponse.indexOf("\"articles\":[") + 12;
+    int articlesEndIdx = smartResponse.indexOf("]", articlesStartIdx);
+    if (articlesStartIdx == -1 || articlesEndIdx == -1)
+    {
+        Serial.println("No articles found in response.");
+        return;
+    }
+
+    String articlesSection = smartResponse.substring(articlesStartIdx, articlesEndIdx);
+    int articleStartIdx = 0;
+
+    while ((articleStartIdx = articlesSection.indexOf("{", articleStartIdx)) != -1)
+    {
+        int titleStartIdx = articlesSection.indexOf("\"title\":\"", articleStartIdx);
+        int titleEndIdx = articlesSection.indexOf("\"", titleStartIdx + 9);
+        String title = articlesSection.substring(titleStartIdx + 9, titleEndIdx);
+
+        int urlStartIdx = articlesSection.indexOf("\"url\":\"", titleEndIdx);
+        int urlEndIdx = articlesSection.indexOf("\"", urlStartIdx + 7);
+        String url = articlesSection.substring(urlStartIdx + 7, urlEndIdx);
+
+        int descriptionStartIdx = articlesSection.indexOf("\"description\":\"", urlEndIdx);
+        int descriptionEndIdx = articlesSection.indexOf("\"", descriptionStartIdx + 15);
+        String description = articlesSection.substring(descriptionStartIdx + 15, descriptionEndIdx);
+
+        Serial.println("📰 Title: " + title);
+        Serial.println("🔗 URL  : " + url);
+        Serial.println("📄 Description: " + description);
+        Serial.println("----");
+
+        articleStartIdx = articlesSection.indexOf("}", descriptionEndIdx);
+        if (articleStartIdx == -1)
+            break;
+        articleStartIdx++;
+    }
+}
+
+// Display Mails
+void displayMails(String response)
+{
+    int mailsStartIdx = response.indexOf("\"mails\":[") + 9;
+    int mailsEndIdx = response.indexOf("]", mailsStartIdx);
+    if (mailsStartIdx == -1 || mailsEndIdx == -1)
+    {
+        Serial.println("No mails found.");
+        return;
+    }
+
+    String mailsSection = response.substring(mailsStartIdx, mailsEndIdx);
+    int mailStartIdx = 0;
+
+    while ((mailStartIdx = mailsSection.indexOf("{", mailStartIdx)) != -1)
+    {
+        int fromStart = mailsSection.indexOf("\"from\":\"", mailStartIdx);
+        int fromEnd = mailsSection.indexOf("\"", fromStart + 8);
+        String from = mailsSection.substring(fromStart + 8, fromEnd);
+
+        int subjectStart = mailsSection.indexOf("\"subject\":\"", fromEnd);
+        int subjectEnd = mailsSection.indexOf("\"", subjectStart + 11);
+        String subject = mailsSection.substring(subjectStart + 11, subjectEnd);
+
+        int snippetStart = mailsSection.indexOf("\"snippet\":\"", subjectEnd);
+        int snippetEnd = mailsSection.indexOf("\"", snippetStart + 11);
+        String snippet = mailsSection.substring(snippetStart + 11, snippetEnd);
+
+        Serial.println("📧 From   : " + from);
+        Serial.println("✉️ Subject: " + subject);
+        Serial.println("📝 Snippet: " + snippet);
+        Serial.println("----");
+
+        mailStartIdx = mailsSection.indexOf("}", snippetEnd);
+        if (mailStartIdx == -1)
+            break;
+        mailStartIdx++;
+    }
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -50,13 +162,12 @@ void setup()
     Serial.println("\nConnected! IP address: ");
     Serial.println(WiFi.localIP());
 
-    // Step 1: Trigger listening on PC
     HTTPClient http;
     WiFiClient client1;
     String startUrl = String(pcIP) + ":5000/start-listening";
     Serial.println("Triggering speech recognition...");
     http.begin(client1, startUrl);
-    http.setTimeout(15000); // <-- add this
+    http.setTimeout(15000);
     int httpCode = http.GET();
     Serial.print("HTTP GET Code: ");
     Serial.println(httpCode);
@@ -67,15 +178,12 @@ void setup()
     if (httpCode == 200)
     {
         Serial.println("Listening started. Waiting for result...");
-
-        // Step 2: Poll /result every 2 sec until text is available
         String recognizedText = "";
         int attempts = 0;
 
         while (attempts < 10)
-        { // avoid infinite loop
+        {
             delay(2000);
-
             HTTPClient resultHttp;
             WiFiClient client2;
             String resultUrl = String(pcIP) + ":5000/result";
@@ -86,8 +194,6 @@ void setup()
             {
                 String payload = resultHttp.getString();
                 Serial.println("Raw result: " + payload);
-
-                // crude parsing — better with ArduinoJson if needed
                 int idx = payload.indexOf(":\"") + 2;
                 int endIdx = payload.lastIndexOf("\"");
                 recognizedText = payload.substring(idx, endIdx);
@@ -99,7 +205,6 @@ void setup()
             attempts++;
         }
 
-        // Step 3: Send to Smart API
         if (recognizedText.length() > 0)
         {
             Serial.print("Recognized: ");
@@ -115,6 +220,23 @@ void setup()
             {
                 String smartRes = smartHttp.getString();
                 Serial.println("Smart Response:\n" + smartRes);
+
+                if (smartRes.indexOf("\"action\":\"weather\"") != -1)
+                {
+                    displayWeather(smartRes);
+                }
+                else if (smartRes.indexOf("\"action\":\"news\"") != -1)
+                {
+                    displayNews(smartRes);
+                }
+                else if (smartRes.indexOf("\"action\":\"email\"") != -1)
+                {
+                    displayMails(smartRes);
+                }
+                else
+                {
+                    Serial.println("Unrecognized response format.");
+                }
             }
             else
             {
